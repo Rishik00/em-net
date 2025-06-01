@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 import mlflow
 import torch
 import typer
+from pyngrok import ngrok
 from dotenv import load_dotenv
 from dataclasses import dataclass
 from sklearn.model_selection import train_test_split
@@ -32,13 +33,17 @@ def train_model(train_dataloader, model, optim, loss_fn, device):
                 f"loss: {loss:3f} [{current} / {len(train_dataloader)}]"
             )
 
-def test_model():
-    pass
+def main(num_epochs, batch_size, lr, use_ngrok=True):
 
-def main(num_epochs, batch_size, lr):
+    ngrok.kill()
+
+    ngrok.set_auth_token(os.environ('AUTH_TOKEN'))
     mlflow.set_tracking_uri(f"{os.environ("MLFLOW_HOST"):{os.environ("MLFLOW_PORT")}}")
     mlflow.set_experiment("Torch basic time series")
 
+    if use_ngrok:
+        ngrok_tunnel = ngrok.connect(addr="5000", proto="http", bind_tls=True)
+        print("MLflow Tracking UI:", ngrok_tunnel.public_url)
 
     dataset_config = DatasetConfig(
         date_start='2021/10/11 00:00:00', 
