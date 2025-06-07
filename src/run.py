@@ -5,8 +5,8 @@ import torch
 import typer
 import time
 import subprocess
-from pyngrok import ngrok
-from dotenv import load_dotenv
+# from pyngrok import ngrok
+# from dotenv import load_dotenv
 from dataclasses import dataclass
 from sklearn.model_selection import train_test_split
 
@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 from data import SyntheticTimeSeriesDataset, SyntheticTimeSeriesTensorDataset, DatasetConfig
 from model import DenseNetwork, ModelConfig
 
-load_dotenv()
+# load_dotenv()
 
 def train_model(train_dataloader, model, optim, loss_fn, device):
     for batch_idx, (inp, target) in enumerate(train_dataloader):
@@ -82,11 +82,9 @@ def main(epochs, batch_size, lr, use_ngrok=False):
     train_dl = DataLoader(train_ds, batch_size=batch_size, num_workers=1)
     test_dl = DataLoader(test_ds, batch_size=batch_size, num_workers=1)
 
-
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = DenseNetwork(config=model_config).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=model_config.lr)
-
 
     print(f"[INFO] device set to: {device}")
 
@@ -95,10 +93,8 @@ def main(epochs, batch_size, lr, use_ngrok=False):
 
         for t in range(epochs):
             print(f"Epoch {t+1}\n-------------------------------")
-            train_model(train_dl, model, loss_fn, optimizer, device)
-
-
+            train_model(train_dl, model, optimizer, loss_fn, device)
 
 if __name__ == "__main__":
-    start_mlflow_server()
+    # start_mlflow_server()
     main(100, 64, 0.001)
