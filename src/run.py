@@ -3,6 +3,8 @@ from torch.utils.data import DataLoader
 import mlflow
 import torch
 import typer
+import time
+import subprocess
 from pyngrok import ngrok
 from dotenv import load_dotenv
 from dataclasses import dataclass
@@ -33,18 +35,22 @@ def train_model(train_dataloader, model, optim, loss_fn, device):
                 f"loss: {loss:3f} [{current} / {len(train_dataloader)}]"
             )
 
-def main(num_epochs, batch_size, lr, use_ngrok=True):
+def start_mlflow_server(use_ngrok: bool = True):
+    print("Starting MLflow server...")
 
-    ngrok.kill()
+    mlflow_uri = f"http://127.0.0.1:8080"
+    mlflow.set_tracking_uri(uri=mlflow_uri)
 
-    ngrok.set_auth_token(os.environ('AUTH_TOKEN'))
-    mlflow.set_tracking_uri(f"{os.environ("MLFLOW_HOST"):{os.environ("MLFLOW_PORT")}}")
-    mlflow.set_experiment("Torch basic time series")
+    print(f"MLflow UI launching at {mlflow_uri}")
+    subprocess.Popen(["mlflow", "ui", "--host", "127.0.0.1", "--port", "8080"])
 
-    if use_ngrok:
-        ngrok_tunnel = ngrok.connect(addr="5000", proto="http", bind_tls=True)
-        print("MLflow Tracking UI:", ngrok_tunnel.public_url)
+    time.sleep(2)  # Give the server a moment to start
+    print("Open your browser and visit:", mlflow_uri)
 
+    mlflow.set_experiment("Simple Pytorch training")
+
+
+def main(epochs, batch_size, lr, use_ngrok=False):
     dataset_config = DatasetConfig(
         date_start='2021/10/11 00:00:00', 
         date_end='2021/11/11 00:00:00',
@@ -68,7 +74,7 @@ def main(num_epochs, batch_size, lr, use_ngrok=True):
         hidden_dim= 256,
         output_dim= 1,
         lr = lr,
-        num_epochs= num_epochs,
+        epochs= epochs,
         batch_size = batch_size,
     )
 
@@ -76,22 +82,23 @@ def main(num_epochs, batch_size, lr, use_ngrok=True):
     train_dl = DataLoader(train_ds, batch_size=batch_size, num_workers=1)
     test_dl = DataLoader(test_ds, batch_size=batch_size, num_workers=1)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=model_config.lr)
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = DenseNetwork(config=model_config).to(device)
-    
+    optimizer = torch.optim.Adam(model.parameters(), lr=model_config.lr)
+
+
     print(f"[INFO] device set to: {device}")
 
     with mlflow.start_run():
         mlflow.log_params(model_config.__dict__)
 
-        for t in range(num_epochs):
+        for t in range(epochs):
             print(f"Epoch {t+1}\n-------------------------------")
             train_model(train_dl, model, loss_fn, optimizer, device)
 
-        test_model()
 
 
 if __name__ == "__main__":
-
-    typer.run(main)
+    start_mlflow_server()
+    main(100, 64, 0.001)

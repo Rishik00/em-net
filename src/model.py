@@ -9,7 +9,7 @@ class ModelConfig:
     hidden_dim: int = 256
     output_dim: int = 1
     lr: float = 0.001
-    num_epochs: int = 100
+    epochs: int = 100
     batch_size: int = 24
 
 class DenseNetwork(nn.Module):
